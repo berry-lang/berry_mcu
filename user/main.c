@@ -5,6 +5,18 @@
 #include "be_repl.h"
 #include "boardlib.h"
 
+#if defined(__GNUC__)
+    #define COMPILER  "GCC"
+#else
+    #define COMPILER  "Unknown Compiler"
+#endif
+
+#define FULL_VERSION "Berry " BERRY_VERSION
+
+#define repl_prelude                                            \
+    FULL_VERSION " (build in " __DATE__ ", " __TIME__ ")\n"     \
+    "[" COMPILER "] on STM32F103RCT6\n"                         \
+
 static volatile int usart_ready = 0;
 static volatile char usart_buf[400];
 
@@ -19,13 +31,12 @@ static const char* get_line(const char *prompt)
 
 int main(void)
 {
-    bvm *vm = be_vm_new(16);
+    bvm *vm = be_vm_new();
 
     usart1_config(115200);
     be_loadlibs(vm);
     board_init(vm);
-    printf("Berry " BERRY_VERSION "\n");
-    printf("On STM32F103RCT6 (build in " __DATE__ ", " __TIME__ ")\n");
+    printf(repl_prelude);
     be_repl(vm, get_line);
     be_vm_delete(vm);
     while (1) {
