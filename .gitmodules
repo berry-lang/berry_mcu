@@ -1,3 +1,3 @@
 [submodule "middleware/berry"]
 	path = middleware/berry
-	url = git@github.com:gztss/berry.git
+	url = https://github.com/gztss/berry.git
