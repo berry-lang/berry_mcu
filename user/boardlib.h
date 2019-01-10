@@ -4,6 +4,5 @@
 #include "berry.h"
 
 void board_init(bvm *vm);
-void delay(int t);
 
 #endif

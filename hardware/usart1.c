@@ -52,15 +52,30 @@ void usart1_config(uint32_t baudrate)
     it_config();
 }
 
+void usart_putchar(USART_TypeDef *USARTx, int ch)
+{
+    USARTx->DR = (uint16_t)(ch & 0x01FF);
+    while (!(USARTx->SR & USART_FLAG_TXE));
+}
+
+int fputc(int ch, FILE *stream)
+{
+    if (stream == stdout) {
+        if (ch == '\n') {
+            usart_putchar(USART1, '\r');
+        }
+        usart_putchar(USART1, ch);
+    }
+    return ch;
+}
+
 int _write(int fd, char *pBuffer, int size)
 {
     int i = size;
     (void)fd;
     while (i--) {
-        USART1->DR = (uint16_t)(*pBuffer++ & 0x01FF);
-        while (!(USART1->SR & USART_FLAG_TXE));
+        fputc(*pBuffer++, stdout);
     }
-    
     return size;
 }
 

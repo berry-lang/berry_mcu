@@ -1,6 +1,8 @@
 #ifndef __BERRY_CONF_H
 #define __BERRY_CONF_H
 
+#include <stdio.h>
+
 /* Macro: BE_SINGLE_FLOAT
  * Unused.
  **/
@@ -32,5 +34,18 @@
  * expanded if the number of free is less than BE_STACK_FREE_MIN.
  **/
 #define BE_STACK_FREE_MIN               10
+
+/* File operation interface.
+ * Modify these macros to port file system support.
+ **/
+#define be_fhandle                      FILE
+#define be_fopen(fname, mode)           fopen(fname, mode)
+#define be_fclose(fp)                   fclose(fp)
+#define be_fwrite(fp, buffer, len)      fwrite(buffer, 1, len, fp)
+#define be_fread(fp, buffer, len)       fread(buffer, 1, len, fp)
+#define be_fgets(fp, buffer, max)       fgets(buffer, max, fp)
+#define be_fseek(fp, pos)               fseek(fp, pos, SEEK_SET)
+#define be_ftell(fp)                    ftell(fp)
+/* #define be_fsize */
 
 #endif

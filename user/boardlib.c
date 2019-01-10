@@ -1,5 +1,6 @@
 #include "boardlib.h"
 #include "stm32f10x.h"
+#include "delay.h"
 #include <math.h>
 
 #define SINE_POINTS     32
@@ -103,16 +104,6 @@ static void sinewave_dma_config(volatile void *pdata, int size)
     DMA_Cmd(DMA2_Channel3, ENABLE); //使能DMA通道3
 }
 
-void delay(int t)
-{
-    int n;
-    while (t--) {
-        for (n = 0; n < 10000; ++n) {
-            __NOP(); /* not to be optimized */
-        }
-    }
-}
-
 static int setled(bvm *vm)
 {
     if (be_isbool(vm, 1)) {
@@ -200,10 +191,10 @@ static int l_play_stop(bvm *vm)
     return be_returnnil(vm);
 }
 
-static int l_reset(bvm *vm)
+static int l_reboot(bvm *vm)
 {
-    be_printf("software reset...\n\n");
-    delay(10);
+    be_putstr("software reboot...\n\n");
+    delay_ms(10);
     NVIC_SystemReset();
     return be_returnnil(vm);
 }
@@ -218,5 +209,5 @@ void board_init(bvm *vm)
     be_regcfunc(vm, "play_rect", l_play_rect);
     be_regcfunc(vm, "play_tri", l_play_tri);
     be_regcfunc(vm, "play_stop", l_play_stop);
-    be_regcfunc(vm, "reset", l_reset);
+    be_regcfunc(vm, "reboot", l_reboot);
 }
