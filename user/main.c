@@ -26,8 +26,7 @@ int main(void)
 {
     bvm *vm = be_vm_new();
     usart1_config(115200);
-    be_loadlibs(vm);
-    board_init(vm);
+    board_init();
     printf(repl_prelude);
     be_repl(vm, shell_readline);
     be_vm_delete(vm);

@@ -3,6 +3,7 @@ CFLAGS	+= -DSTM32F10X_HD -DUSE_STDPERIPH_DRIVER
 CFLAGS	+= -ffunction-sections -Wl,-gc-sections -mcpu=cortex-m3 -mthumb 
 CFLAGS  += -specs=nosys.specs -specs=nano.specs -u _printf_float
 CFLAGS	+= -T"./toolcfg/stm32f10x_flash.ld"
+CFLAGS	+= -lm
 DOWNCFG	+= "./toolcfg/stm32f10x_download.cfg"
 DEBUG	 = -DDEBUG
 OUTDIR	 = output

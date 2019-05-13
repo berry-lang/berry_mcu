@@ -2,6 +2,7 @@
 #include "stm32f10x.h"
 #include "delay.h"
 #include <math.h>
+#include <string.h>
 
 #define SINE_POINTS     32
 
@@ -23,6 +24,7 @@ void gpio_init(void)
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_WriteBit(GPIOA, GPIO_Pin_8, SET);
 }
 
 void dac_init(void)
@@ -55,6 +57,12 @@ void dac_init(void)
 
 	DAC_SetChannel1Data(DAC_Align_12b_R, 0);//初始化输出0v	
 	DAC_SetChannel2Data(DAC_Align_12b_R, 0);//初始化输出0v
+}
+
+void board_init(void)
+{
+    gpio_init();
+    dac_init();
 }
 
 static void sinewave_tim_config(int period)
@@ -109,7 +117,7 @@ static int setled(bvm *vm)
     if (be_isbool(vm, 1)) {
         GPIO_WriteBit(GPIOA, GPIO_Pin_8, !be_tobool(vm, 1));
     }
-    return be_returnnil(vm);
+    be_return_nil(vm);
 }
 
 static int setdac(bvm *vm)
@@ -125,7 +133,7 @@ static int setdac(bvm *vm)
             }
         }
     }
-    return be_returnnil(vm);
+    be_return_nil(vm);
 }
 
 static void calc_sin_table(float amp)
@@ -166,7 +174,7 @@ static int play_wave(bvm *vm, void (*genwave)(float))
     sinewave_dac_config();
     sinewave_dma_config(sine_tab, SINE_POINTS);
     TIM_Cmd(TIM2, ENABLE);
-    return be_returnnil(vm);
+    be_return_nil(vm);
 }
 
 static int l_play_sin(bvm *vm)
@@ -188,26 +196,25 @@ static int l_play_stop(bvm *vm)
 {
     TIM_Cmd(TIM2, DISABLE);
     dac_init();
-    return be_returnnil(vm);
+    be_return_nil(vm);
 }
 
 static int l_reboot(bvm *vm)
 {
-    be_putstr("software reboot...\n\n");
+    be_writestring("software reboot...\n\n");
     delay_ms(10);
     NVIC_SystemReset();
-    return be_returnnil(vm);
+    be_return_nil(vm);
 }
 
-void board_init(bvm *vm)
-{
-    gpio_init();
-    dac_init();
-    be_regcfunc(vm, "setled", setled);
-    be_regcfunc(vm, "setdac", setdac);
-    be_regcfunc(vm, "play_sin", l_play_sin);
-    be_regcfunc(vm, "play_rect", l_play_rect);
-    be_regcfunc(vm, "play_tri", l_play_tri);
-    be_regcfunc(vm, "play_stop", l_play_stop);
-    be_regcfunc(vm, "reboot", l_reboot);
-}
+be_native_module_attr_table(attr_table) {
+    be_native_module_function("setled", setled),
+    be_native_module_function("setdac", setdac),
+    be_native_module_function("play_sin", l_play_sin),
+    be_native_module_function("play_rect", l_play_rect),
+    be_native_module_function("play_tri", l_play_tri),
+    be_native_module_function("play_stop", l_play_stop),
+    be_native_module_function("reboot", l_reboot)
+};
+
+be_define_native_module(board, attr_table);

@@ -1,9 +1,12 @@
 #include "shell.h"
 #include <stdio.h>
+#include <ctype.h>
+#include <string.h>
 
 #define LINE_LENGTH     64
+#define HISTORY_COUNT   8
 
-#define QUEUE_SIZE      64
+#define QUEUE_SIZE      16
 #define QUEUE_EMPTY     0x10000
 
 #define queue_next(queue, attr) \
@@ -15,11 +18,12 @@ struct queue {
 };
 
 struct shell {
-    int linepos;
-    int linecount;
-    int newline;
-    char line[LINE_LENGTH + 2];
+    int linepos, linecount, newline;
+    int hiscur, hiscnt;
+    char line[LINE_LENGTH + 1];
+    char history[HISTORY_COUNT][LINE_LENGTH + 1];
     struct queue queue;
+    const char *prompt;
 };
 
 static struct shell m_shell;
@@ -56,8 +60,12 @@ static int wait_char(struct shell *shell)
 
 void pack_line(struct shell *shell)
 {
-    shell->line[shell->linecount] = '\n';
-    shell->line[shell->linecount + 1] = '\0';
+    shell->line[shell->linecount] = '\0';
+    if (shell->linecount) {
+        int hiscur = shell->hiscnt % HISTORY_COUNT;
+        strcpy(shell->history[hiscur], shell->line);
+        shell->hiscur = ++shell->hiscnt;
+    }
     shell->linecount = shell->linepos = 0;
 }
 
@@ -74,18 +82,20 @@ static void remove_char(struct shell *shell)
 static void insert_char(struct shell *shell, int ch)
 {
     int pos = shell->linepos, count = shell->linecount;
-    while (count >= pos) {
-        shell->line[count + 1] = shell->line[count];
-        --count;
-    }
-    shell->line[pos] = ch;
-    ++shell->linecount;
-    ++shell->linepos;
-    for (count = shell->linecount; pos < count; ++pos) {
-        fputc(shell->line[pos], stdout);
-    }
-    for (count -= shell->linepos; count > 0; --count) {
-        fputc('\b', stdout);
+    if (count < LINE_LENGTH) {
+        while (count >= pos) {
+            shell->line[count + 1] = shell->line[count];
+            --count;
+        }
+        shell->line[pos] = ch;
+        ++shell->linecount;
+        ++shell->linepos;
+        for (count = shell->linecount; pos < count; ++pos) {
+            fputc(shell->line[pos], stdout);
+        }
+        for (count -= shell->linepos; count > 0; --count) {
+            fputc('\b', stdout);
+        }
     }
 }
 
@@ -122,14 +132,42 @@ static int addchar(struct shell *shell, int ch)
         }
         pack_line(shell);
         return 1;
-    case '\b':
+    case '\b': case '\177':
         backspace(shell);
         break;
     default:
-        insert_char(shell, ch);
-        break;
+        if (isprint(ch)) {
+            insert_char(shell, ch);
+        }
     }
     return 0;
+}
+
+static void change_history(struct shell *shell)
+{
+    int pos = shell->hiscur % HISTORY_COUNT;
+    char *line = shell->history[pos];
+    strcpy(shell->line, line);
+    printf("\r%s%s\033[K", shell->prompt, line);
+    fflush(stdout);
+    shell->linecount = shell->linepos = strlen(line);
+}
+
+static void up_key(struct shell *shell)
+{
+    if (shell->hiscur > 0 && shell->hiscur
+            + HISTORY_COUNT > shell->hiscnt) {
+        --shell->hiscur;
+        change_history(shell);
+    }
+}
+
+static void down_key(struct shell *shell)
+{
+    if (shell->hiscur + 1 < shell->hiscnt) {
+        ++shell->hiscur;
+        change_history(shell);
+    }
 }
 
 static void left_key(struct shell *shell)
@@ -159,10 +197,10 @@ const char* p_readline(struct shell *shell)
         } else if (state == 2) {
             state = 0;
             switch (ch) {
-            case 0x41: break; /* up key */
-            case 0x42: break; /* down key */
-            case 0x43: right_key(shell); break; /* right key */
-            case 0x44: left_key(shell); break; /* left key */
+            case 0x41: up_key(shell); break;
+            case 0x42: down_key(shell); break;
+            case 0x43: right_key(shell); break;
+            case 0x44: left_key(shell); break;
             default: break;
             }
         } else if (addchar(shell, ch)) {
@@ -175,6 +213,7 @@ const char* p_readline(struct shell *shell)
 
 const char* shell_readline(const char *prompt)
 {
+    m_shell.prompt = prompt;
     fputs(prompt, stdout);
     fflush(stdout);
     return p_readline(&m_shell);
