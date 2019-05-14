@@ -61,3 +61,5 @@ dkms.conf
 .vscode
 down
 test.txt
+
+generate/

@@ -207,6 +207,7 @@ static int l_reboot(bvm *vm)
     be_return_nil(vm);
 }
 
+#if !BE_USE_PRECOMPILED_OBJECT
 be_native_module_attr_table(attr_table) {
     be_native_module_function("setled", setled),
     be_native_module_function("setdac", setdac),
@@ -218,3 +219,17 @@ be_native_module_attr_table(attr_table) {
 };
 
 be_define_native_module(board, attr_table);
+#else
+/* @const_object_info_begin
+module board (scope: golbal) {
+    setled, func(setled)
+    setdac, func(setdac)
+    play_sin, func(l_play_sin)
+    play_rect, func(l_play_rect)
+    play_tri, func(l_play_tri)
+    play_stop, func(l_play_stop)
+    reboot, func(l_reboot)
+}
+@const_object_info_end */
+#include "../generate/be_fixed_board.h"
+#endif

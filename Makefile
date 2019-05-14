@@ -13,6 +13,11 @@ OBJCOPY	 = arm-none-eabi-objcopy
 SIZE	 = arm-none-eabi-size
 MKDIR	 = mkdir
 
+BERRY_PATH = middleware/berry
+GENERATE   = generate
+MAP_BUILD  = $(BERRY_PATH)/tools/map_build/map_build
+STR_BUILD  = $(BERRY_PATH)/tools/str_build/str_build
+
 INCPATH	 = ./core				\
 	   ./hardware				\
 	   ./std_lib/inc			\
@@ -34,14 +39,19 @@ ifeq ($(debug), 1)
     CFLAGS += $(DEBUG)
 endif
 
+ifeq ($(OS), Windows_NT) # Windows
+    MAP_BUILD := $(MAP_BUILD).exe
+    STR_BUILD := $(STR_BUILD).exe
+endif
+
 all: $(TARGET).elf
 
 $(TARGET).elf: $(OBJS) $(START) $(OUTDIR)
 	@ echo [Linking...]
 	@ $(CC) $(OBJS) $(CFLAGS) $(START) -o $@
 	@ echo Creating Hex file...
-	@$(OBJCOPY) -O ihex -S $(TARGET).elf $(TARGET).hex
-	@$(OBJCOPY) -O binary -S $(TARGET).elf $(TARGET).bin
+	@ $(OBJCOPY) -O ihex -S $(TARGET).elf $(TARGET).hex
+	@ $(OBJCOPY) -O binary -S $(TARGET).elf $(TARGET).bin
 	@ echo Build info:
 	@ $(SIZE) $(TARGET).elf
 	@ echo done
@@ -55,6 +65,23 @@ sinclude $(DEPS)
 
 $(OUTDIR):
 	@ $(MKDIR) $(OUTDIR)
+
+$(GENERATE):
+	@ $(MKDIR) $(GENERATE)
+
+prebuild: $(STR_BUILD) $(MAP_BUILD) $(GENERATE)
+	@ echo [Prebuild] generate resources
+	@ $(MAP_BUILD) $(GENERATE) $(SRCPATH)
+	@ $(STR_BUILD) $(GENERATE) $(SRCPATH) $(GENERATE)
+	@ echo done
+
+$(STR_BUILD):
+	@ echo [Make] str_build
+	@ $(MAKE) -C $(BERRY_PATH)/tools/str_build -s
+
+$(MAP_BUILD):
+	@ echo [Make] map_build
+	@ $(MAKE) -C $(BERRY_PATH)/tools/map_build -s
 
 clean:
 	@ echo [Clean...]
